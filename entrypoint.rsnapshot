@@ -1,0 +1,61 @@
+#!/bin/bash
+
+set -e -o pipefail
+
+# Configure: rsnapshot
+if [[ ! -e "${EP_RUN}" ]] ; then
+	log "Configuring $(basename "${0}") for first run ..."
+
+	# Generate ssh keys ...
+	generate_sshkey rsnapshot
+
+	log "Staging ssh keys ..."
+	install --group=root --mode=0600 --owner=root "${EP_SECRETS_ROOT}/id_rsa.rsnapshot" "/root/.ssh/id_rsa"
+	install --group=root --mode=0644 --owner=root "${EP_SECRETS_ROOT}/id_rsa.rsnapshot.pub" "/root/.ssh/id_rsa.pub"
+
+	# Volume initialization
+	if [[ ! -f "${RSNAPSHOT_CONFIG}/rsnapshot.conf" ]] ; then
+		log "Initializing data volume ..."
+		install --directory --group=root --mode=0775 --owner=root "${RSNAPSHOT_CONFIG}/conf.d/"
+
+		if [[ "X${RSNAPSHOT_CONF}" != "X" ]] ; then
+			log "Deploying custom global rsnapshot configuration ..."
+			echo "${RSNAPSHOT_CONF}" | envsubst > "${RSNAPSHOT_CONFIG}/rsnapshot.conf"
+		else
+			log "Deploying global rsnapshot configuration ..."
+			install --group=root --mode=0644 --owner=root "${RSNAPSHOT_CONFIG}/rsnapshot.conf.dist" "${RSNAPSHOT_CONFIG}/rsnapshot.conf"
+		fi
+
+		log "Adapting configuration files ..."
+		log "	rsnapshot.conf"
+		for conf in ${!RSNAPSHOT_CONFD_@}; do
+			[[ "X${!conf}" == "X" ]] && continue
+			name="${conf,,}.conf"
+			name="${name#"rsnapshot_confd_"}"
+			[[ "X${name}" == "X" ]] && continue
+
+			log "	${name}"
+			echo "${!conf}" | envsubst > "${RSNAPSHOT_CONFIG}/conf.d/${name}"
+		done
+		echo "include_conf	${RSNAPSHOT_CONFIG}/rsnapshot-confd.conf" >> "${RSNAPSHOT_CONFIG}/rsnapshot.conf"
+		rsnapshot-update-confd
+
+		path_log=/var/log/rsnapshot.log
+		if [[ ! -e "${path_log}" ]] ; then
+			log "Generating: ${path_log} ..."
+			# Do not wipe logs by using 'install' here ...
+			touch "${path_log}"
+		fi
+		chown root:root "${path_log}"
+		chmod 0640 "${path_log}"
+
+		log "Applying ownership and permissions ..."
+		find "${RSNAPSHOT_CONFIG}" \( \! -user root -o \! -group root \) -exec chown root:root {} \;
+		# Do not recurse into backup file sets by using 'install' here ...
+		chown root:root "${RSNAPSHOT_DATA}"
+		chmod 0700 "${RSNAPSHOT_DATA}"
+	else
+		log "Skipping data volume initialization ..."
+	fi
+fi
+

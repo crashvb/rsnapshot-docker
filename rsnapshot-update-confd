@@ -1,0 +1,18 @@
+#!/bin/bash
+
+set -e -o pipefail
+shopt -s nullglob
+
+source /usr/local/lib/entrypoint.sh
+
+path="${RSNAPSHOT_CONFIG}/rsnapshot-confd.conf"
+
+log "Generating: ${path} ..."
+true > "${path}"
+for i in /etc/rsnapshot/conf.d/*.conf ; do
+	if [[ -e "${i}" ]] ; then
+		log "	$(basename "${i}")"
+		echo "include_conf	${i}" >> "${path}"
+	fi
+done
+
