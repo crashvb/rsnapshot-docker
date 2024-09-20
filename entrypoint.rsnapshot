@@ -40,11 +40,18 @@ if [[ ! -e "${EP_RUN}" ]] ; then
 		echo "include_conf	${RSNAPSHOT_CONFIG}/rsnapshot-confd.conf" >> "${RSNAPSHOT_CONFIG}/rsnapshot.conf"
 		rsnapshot-update-confd
 
+		path_ssh_config="${RSNAPSHOT_CONFIG}/ssh_config"
+		if [[ ! -e "${path_ssh_config}" ]] ; then
+			log "Generating: ${path_ssh_config} ..."
+			install --group=root --mode=0644 --owner=root /dev/null "${path_ssh_config}"
+		fi
+		chown root:root "${path_ssh_config}"
+		chmod 0640 "${path_ssh_config}"
+
 		path_log=/var/log/rsnapshot.log
 		if [[ ! -e "${path_log}" ]] ; then
 			log "Generating: ${path_log} ..."
-			# Do not wipe logs by using 'install' here ...
-			touch "${path_log}"
+			install --group=root --mode=0640 --owner=root /dev/null "${path_log}"
 		fi
 		chown root:root "${path_log}"
 		chmod 0640 "${path_log}"

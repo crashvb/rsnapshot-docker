@@ -26,6 +26,7 @@ COPY logrotate.rsnapshot /etc/logrorate.d/rsnapshot
 RUN install --directory --group=root --mode=0755 --owner=root /root/.ssh/ && \
 	sed --expression="/UserKnownHostsFile/cUserKnownHostsFile ${RSNAPSHOT_CONFIG}/known_hosts" --in-place /etc/ssh/ssh_config && \
 	ln --force --symbolic "${RSNAPSHOT_CONFIG}/known_hosts" /root/.ssh/known_hosts && \
+	ln --force --symbolic "${RSNAPSHOT_CONFIG}/ssh_config" /root/.ssh/config && \
 	install --directory --group=root --mode=0755 --owner=root "${RSNAPSHOT_CONFIG}" && \
 	mv /etc/rsnapshot.conf "${RSNAPSHOT_CONFIG}/rsnapshot.conf.dist" && \
 	cp --preserve /etc/cron.hourly/rsnapshot /etc/cron.daily/ && \
