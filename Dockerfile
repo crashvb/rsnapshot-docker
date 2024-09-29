@@ -22,6 +22,7 @@ ENV \
 	RSNAPSHOT_DATA=/var/lib/rsnapshot
 COPY rsnapshot-* /usr/local/bin/
 COPY cron.rsnapshot /etc/cron.hourly/rsnapshot
+COPY crontab /etc/crontab
 COPY logrotate.rsnapshot /etc/logrorate.d/rsnapshot
 RUN install --directory --group=root --mode=0755 --owner=root /root/.ssh/ && \
 	sed --expression="/UserKnownHostsFile/cUserKnownHostsFile ${RSNAPSHOT_CONFIG}/known_hosts" --in-place /etc/ssh/ssh_config && \
